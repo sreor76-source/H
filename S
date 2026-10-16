@@ -1,0 +1,201 @@
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local Mouse = LocalPlayer:GetMouse()
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MouseVehicleSpawnerGUI"
+ScreenGui.ResetOnSpawn = false
+local successParent, _ = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
+if not successParent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 310)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -155)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+MainFrame.BorderSizePixel = 2
+MainFrame.BorderColor3 = Color3.fromRGB(255, 170, 0)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "تحديد مكان المركبة بالماوس (اضغط L للإخفاء)"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 11
+Title.Parent = MainFrame
+
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 10)
+
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 8)
+CloseBtn.Text = "X"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 12
+CloseBtn.Parent = MainFrame
+
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 4)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Variables
+local selectedVehicle = nil
+local isPlacing = false
+
+-- Status Label
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0.9, 0, 0, 35)
+StatusLabel.Position = UDim2.new(0.05, 0, 0, 50)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+StatusLabel.Text = "الحالة: لم يتم تحديد مركبة"
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextSize = 11
+StatusLabel.TextWrapped = true
+StatusLabel.Parent = MainFrame
+
+Instance.new("UICorner", StatusLabel).CornerRadius = UDim.new(0, 6)
+
+-- 1. Button: Select Vehicle
+local SelectBtn = Instance.new("TextButton")
+SelectBtn.Size = UDim2.new(0.9, 0, 0, 40)
+SelectBtn.Position = UDim2.new(0.05, 0, 0, 95)
+SelectBtn.Text = "1. تحديد المركبة (اركبها واضغط هنا)"
+SelectBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+SelectBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SelectBtn.Font = Enum.Font.GothamBold
+SelectBtn.TextSize = 12
+SelectBtn.Parent = MainFrame
+
+Instance.new("UICorner", SelectBtn).CornerRadius = UDim.new(0, 6)
+
+-- 2. Button: Activate Mouse Placement Mode
+local PlaceModeBtn = Instance.new("TextButton")
+PlaceModeBtn.Size = UDim2.new(0.9, 0, 0, 45)
+PlaceModeBtn.Position = UDim2.new(0.05, 0, 0, 145)
+PlaceModeBtn.Text = "2. تفعيل وضع الترسيبن بالماوس"
+PlaceModeBtn.BackgroundColor3 = Color3.fromRGB(215, 120, 0)
+PlaceModeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlaceModeBtn.Font = Enum.Font.GothamBold
+PlaceModeBtn.TextSize = 12
+PlaceModeBtn.Parent = MainFrame
+
+Instance.new("UICorner", PlaceModeBtn).CornerRadius = UDim.new(0, 6)
+
+-- 3. Button: Reset
+local ResetBtn = Instance.new("TextButton")
+ResetBtn.Size = UDim2.new(0.9, 0, 0, 38)
+ResetBtn.Position = UDim2.new(0.05, 0, 0, 200)
+ResetBtn.Text = "3. إلغاء التحديد"
+ResetBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ResetBtn.Font = Enum.Font.GothamBold
+ResetBtn.TextSize = 12
+ResetBtn.Parent = MainFrame
+
+Instance.new("UICorner", ResetBtn).CornerRadius = UDim.new(0, 6)
+
+-- Logic 1: Select Vehicle
+SelectBtn.MouseButton1Click:Connect(function()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid and humanoid.SeatPart then
+        local seat = humanoid.SeatPart
+        selectedVehicle = seat:FindFirstAncestorOfClass("Model")
+        
+        if selectedVehicle then
+            StatusLabel.Text = "تم حفظ المركبة: " .. selectedVehicle.Name .. "\nاضغط زر 2 ثم انقر بالماوس ع الأرض"
+        end
+    else
+        StatusLabel.Text = "خطأ: اركب المركبة المراد نسخها أولاً!"
+    end
+end)
+
+-- Logic 2: Activate Placement Mode
+PlaceModeBtn.MouseButton1Click:Connect(function()
+    if not selectedVehicle then
+        StatusLabel.Text = "خطأ: حدد المركبة أولاً (خطوة 1)!"
+        return
+    end
+    
+    isPlacing = true
+    StatusLabel.Text = "وضع الترسيبن مفعل!\nانقر بالماوس في أي مكان بالأرض لترسيبنها."
+end)
+
+-- Logic 3: Mouse Click Handler to Spawn/Move Vehicle at Mouse Hit
+Mouse.Button1Down:Connect(function()
+    if not isPlacing or not selectedVehicle then return end
+    
+    local targetPos = Mouse.Hit
+    if targetPos then
+        local success, err = pcall(function()
+            local clone = selectedVehicle:Clone()
+            clone.Parent = Workspace
+            
+            -- ضبط الموقع فوق نقطة الماوس بمسافة بسيطة لكي لا تنغرس بالأرض، وتكون معدولة
+            local pos = targetPos.Position + Vector3.new(0, 3, 0)
+            local uprightCFrame = CFrame.new(pos)
+            
+            local primary = clone.PrimaryPart or clone:FindFirstChildWhichIsA("BasePart")
+            if primary then
+                clone:SetPrimaryPartCFrame(uprightCFrame)
+            else
+                for _, part in ipairs(clone:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CFrame = uprightCFrame
+                        break
+                    end
+                end
+            end
+            
+            -- إيقاف الفيزياء والسرعة لثبات تام
+            for _, part in ipairs(clone:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                end
+            end
+        end)
+        
+        if success then
+            StatusLabel.Text = "تم ترسيبن المركبة في المكان المحدّد بالماوس بنجاح!"
+        else
+            StatusLabel.Text = "فشل الترسيبن (حماية الماب)"
+        end
+        
+        isPlacing = false -- إيقاف وضع الترسيبن بعد النقرة
+    end
+end)
+
+-- Reset Button Logic
+ResetBtn.MouseButton1Click:Connect(function()
+    selectedVehicle = nil
+    isPlacing = false
+    StatusLabel.Text = "تم إلغاء التحديد."
+end)
+
+-- Toggle Visibility with 'L'
+UserInputService.InputBegan:Connect(function(input, isTyping)
+    if isTyping then return end
+    if input.KeyCode == Enum.KeyCode.L then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
